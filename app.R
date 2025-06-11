@@ -1,22 +1,20 @@
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
-library(tidytuesdayR)
 library(plotly)
-library(sf)
 library(rnaturalearth)
 library(rnaturalearthdata)
 
-# fetch data from the tidyTuesday github repo
-tuesday_data <- tidytuesdayR::tt_load("2025-05-20")
+# importing datasets
+# Data was curated by Dr Jen Richmond for the tidyTuesday challenge on 20/05/2025
 
-# splitting datasets
 # Historical weather data for Sydney provided by https://open-meteo.com/ API.
-weather <- tuesday_data$weather
-# Water quality data for Sydney beaches provided by https://www.beachwatch.nsw.gov.au/waterMonitoring/waterQualityData
-water_quality <- tuesday_data$water_quality
+weather <- read_csv("weather.csv", show_col_types = FALSE)
 
-# making water_quality date resolution the same as weather (daily)
+# Water quality data for Sydney beaches provided by https://www.beachwatch.nsw.gov.au/waterMonitoring/waterQualityData
+water_quality <- read_csv("water_quality.csv", show_col_types = FALSE)
+
+# making water_quality time-series resolution the same as weather (daily)
 daily_wq <- water_quality %>%
   group_by(region, council, swim_site, date) %>%
   summarize(
@@ -93,40 +91,109 @@ ecoli_range <- daily_wq$enterococci_cfu_100ml %>% range()
 
 # UI
 ui <- dashboardPage(
-  dashboardHeader(title = "Swimming in the Sea: Sydney"),
-  dashboardSidebar(
+  header = dashboardHeader(title = "Swimming in the Sea: NSW"),
+  sidebar = dashboardSidebar(
     sidebarMenu(
       menuItem("Water Quality: Time Series", tabName = "trends", icon = icon("line-chart")),
       menuItem("Rainfall and Water", tabName = "rain", icon = icon("cloud")),
       menuItem("Water Safety Map", tabName = "map", icon = icon("map")),
-      sliderInput("threshold", "Safety Threshold (Enterococci per 100ml):",
+      br(), br(), sliderInput("threshold", "Safety Threshold (Enterococci per 100ml):",
         min = ecoli_range[1], max = ecoli_range[2], value = 650, step = ecoli_range[2] / 200
       ),
       actionButton("reset", "Reset Threshold", icon = icon("undo"))
     )
   ),
-  dashboardBody(
+  body = dashboardBody(
     tabItems(
       tabItem(
         tabName = "trends",
-        fluidRow(plotlyOutput("trend_plot", height = "700px"))
+        tagList(
+          fluidRow(plotlyOutput("trend_plot", height = "700px")),
+          div(
+            style = "
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 400px;
+        padding: 10px;
+        border: 1px solid #999999;
+        border-radius: 5px;
+        text-align: right;
+        font-size: 12px;
+        z-index: 1000;
+      ",
+            HTML(
+              paste0(
+                "Data curated by <a href='https://www.unsw.edu.au/staff/jenny-richmond'>Jen Richmond, PhD.</a> for the
+                <em><a href='https://github.com/rfordatascience/tidytuesday/tree/main/data/2025/2025-05-20' target='_blank'>
+                TidyTuesday Challenge, 20/05/2025</a></em>"
+              )
+            )
+          )
+        )
       ),
       tabItem(
         tabName = "rain",
-        fluidRow(plotlyOutput("rain_plot", height = "700px"))
+        tagList(
+          fluidRow(
+            plotlyOutput("rain_plot", height = "700px")
+          ),
+          # annotation for slider + weather data reference
+          div(
+            style = "
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 700px;
+        padding: 10px;
+        border: 1px solid #999999;
+        border-radius: 5px;
+        text-align: right;
+        font-size: 12px;
+        z-index: 1000;
+      ",
+            HTML(
+              paste0(
+                "Use the slider in the sidebar to set a threshold for acceptable bacteria level in swimming areas.<br/>
+          Weather Forecast Data: <em>Open-Meteo.com.
+          <a href='https://open-meteo.com/en/docs' target='_blank'>
+          Weather Forecast API | Open-Meteo.com</a>.</em>"
+              )
+            )
+          )
+        )
       ),
       tabItem(
         tabName = "map",
-        fluidRow(
-          column(
-            width = 8,
-            plotlyOutput("map_plot", height = "600px")
-          ),
-          column(
-            width = 8,
+        tagList(
+          fluidRow(
+            plotlyOutput("map_plot", height = "600px"),
             br(),
-            # br(),
-            valueBoxOutput("unsafe_pct"),
+            valueBoxOutput("unsafe_pct")
+          ),
+          # annotation + water quality data reference
+          div(
+            style = "
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 700px;
+        padding: 10px;
+        border: 1px solid #999999;
+        border-radius: 5px;
+        text-align: right;
+        font-size: 12px;
+        z-index: 1000;
+      ",
+            HTML(
+              paste0(
+                "Use the slider in the sidebar to adjust the acceptable bacteria threshold.<br/>
+          The number of swimming sites considered 'safe' will change accordingly.<br/>
+          Water Quality Map Data: <em>New South Wales Government and Local Councils. (n.d.).
+          <a href='https://www.beachwatch.nsw.gov.au/waterMonitoring/waterQualityData' target='_blank'>
+          BeachWatch NSW</a>.</em>"
+              )
+            )
           )
         )
       )
