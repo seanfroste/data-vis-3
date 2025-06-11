@@ -98,7 +98,11 @@ ui <- dashboardPage(
     sidebarMenu(
       menuItem("Water Quality: Time Series", tabName = "trends", icon = icon("line-chart")),
       menuItem("Rainfall and Water", tabName = "rain", icon = icon("cloud")),
-      menuItem("Water Safety Map", tabName = "map", icon = icon("map"))
+      menuItem("Water Safety Map", tabName = "map", icon = icon("map")),
+      sliderInput("threshold", "Safety Threshold (Enterococci per 100ml):",
+        min = ecoli_range[1], max = ecoli_range[2], value = 650, step = ecoli_range[2] / 200
+      ),
+      actionButton("reset", "Reset Threshold", icon = icon("undo"))
     )
   ),
   dashboardBody(
@@ -120,11 +124,8 @@ ui <- dashboardPage(
           ),
           column(
             width = 8,
-            sliderInput("threshold", "Safety Threshold (Enterococci per 100ml):",
-              min = ecoli_range[1], max = ecoli_range[2], value = 650, step = ecoli_range[2] / 200
-            ),
-            actionButton("reset", "Reset Threshold", icon = icon("undo")),
-            br(), br(),
+            br(),
+            # br(),
             valueBoxOutput("unsafe_pct"),
           )
         )
